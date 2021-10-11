@@ -1,0 +1,23 @@
+.blogpost {
+  width: 50%;
+  p,
+  pre,
+  ol,
+  ul {
+    font-size: 2rem;
+    line-height: 2;
+    margin-top: 2.4rem;
+  }
+  h1,
+  h2,
+  h3 {
+    margin-top: 2.4rem;
+  }
+  pre {
+    padding: 1rem 2rem;
+    background-color: rgba(245, 242, 240, 0.5);
+    border-radius: 3px;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+}

@@ -1,0 +1,330 @@
+---
+title: 'Create a Koa Server with TypeScript'
+date: '2020-07-25'
+intro: 'It has been a long time for developer running a HTTP server with NodeJS on their server, but not necessarily with TypeScript, the most popular feature today. Why not try them out together.'
+cover: './koa+ts.jpg'
+---
+
+import { Title, Image } from '../components';
+import KOA_TS from './koa+ts.jpg';
+import KOA_ONION_MODEL from './koa-onion-model.jpg';
+
+<Image src={KOA_TS} title={'koa+ts.jpg'} />
+<Title title={'Create a Koa Server with TypeScript'} />
+
+_July 25, 2020_, _Last Update at August 5, 2021_
+
+It has been a long time for web developers running a HTTP server with NodeJS on their servers, but not necessarily with TypeScript, today's top trending feature. So why not try them out together.
+
+# 1. Koa
+
+Let's start with Koa, a web framework for NodeJS.
+
+```
+npm install koa koa-bodyparser koa-json koa-logger koa-router
+```
+
+Packages named koa-bodyparser, koa-json, koa-logger and koa-router are what we called Middleware in Koa, and we'll get to them a bit later. As for now we need to create a `src` directory to put our source files in it. And we'll start with `index.js`.
+
+```
+// What we have so far
+src
+  |_ index.js
+```
+
+Now we will write the following simple code in the `index.js` file. Then we'll go through it.
+
+```js
+// index.js
+import Koa from 'koa';
+import Router from 'koa-router';
+import logger from 'koa-logger';
+import json from 'koa-json';
+import bodyParser from 'koa-bodyparser';
+
+const app = new Koa();
+const router = new Router();
+
+// response with Hello World
+router.get('/', async (ctx, next) => {
+  ctx.body = { msg: 'Hello World.' };
+  await next();
+});
+
+// Middlewares
+app.use(json());
+app.use(logger());
+// Routes
+app.use(router.routes()).use(router.allowedMethods());
+
+app.listen(8000, () => {
+  console.log('Koa Ready.');
+});
+```
+
+Firstly we are importing Koa as well as the Middlewares we need. And then we create a Koa instance and a router instance.
+
+After that we will create a simple hanlder for requests which go to the path `'/'` using method `GET`. There're two parameters passed in, the first one is the URL it should deal with, and the second one is an asynchronous callback function. Every time comes the request on path `'/'`, Koa will use this callback function to handle the request.
+
+The callback function also has two parameters, the first one `ctx` is an instance of Koa's Context type, it encapsulates node's `request` and `response` objects into a single object which provides many helpful methods for building web applications. For example, here we assign an object contains the Hello World message to `ctx.body`, which is an equivalent to the `body` property of a Koa's Response object. Koa's Response object is an abstraction on top of node's original response object.
+
+So here's the relationships:
+
+`ctx` instance of `Koa's Context`  
+`ctx.response` instance of `Koa's Response`  
+`Koa's Response` abstraction of `Node's Response`  
+`ctx.body` alias of `Koa Response.body` (shortcut of `ctx.response.body`)
+
+In plain text, `Koa's Context` object includes a `Koa's Response/Request` which is a richer implementation of `Node's Response`. And we can visit most of the properties of `Koa's Response/Request` directly through `ctx[propertyName]`, which is like a shorcut.
+
+At last in the callback, we execute `await next()`, this one seems a little bit weird, but we'll explain it in a minute.
+
+## **Koa Middleware**
+
+It would be easier to understand if we put `await next()` together with Koa's middleware mechanism, which can be represent by the "Onion Model".
+
+<Image src={KOA_ONION_MODEL} title={'koa+ts.jpg'} />{' '}
+
+Imaging each middleware we used is a layer of an onion, and each request will go through the whole onion, which means the request will interact with each layer **twice**.  
+Assuming that we are given the following code:
+
+```js
+import Koa from 'koa';
+const app = new Koa();
+
+const middleware_1 = async (ctx, next) => {
+  console.log(1);
+  await next();
+  console.log(6);
+};
+const middleware_2 = async (ctx, next) => {
+  console.log(2);
+  await next();
+  console.log(5);
+};
+const middleware_3 = async (ctx, next) => {
+  console.log(3);
+  await next();
+  console.log(4);
+};
+
+app.use(middleware_1);
+app.use(middleware_2);
+app.use(middleware_3);
+
+// app running
+```
+
+What would be the output if now comes a request? The answer is `1, 2, 3, 4, 5, 6`. It may be a little supprising, but this is how Koa works.
+
+In each middleware, code **before** `await next()` can be seen as a **pre-operation**, while the code **after** can be seen as a **post-operation**. When Koa serves the request, it follows the sequence below:
+
+1. Get into the first layer, which is `middleware_1`, executes its pre-operation, log '1';
+2. Hit the `await next()`, then go to the next layer `middleware_2`, executes its pre-operation, and log '2';
+3. Again, hit the `await next()` and go to the most inside layer that is `middleware_3`, and executes its pre-operation, log '3';
+4. Now since there are no more layers to dive into, the `await next()` in this layer will simply do nothing, and the request will go bottom-top like a bubble, starting with logging '4', which is the post-operation of the last layer;
+5. Reach the second layer and executes its post-operation, log '5';
+6. Finally back to the first layer and executes its pre-operation, log '6'.
+
+As you can see, Koa will serve the request with the **pre-operation** from each layer in the order of the middlewares we used, and then executes the **post-operation** from each layer in the **reverse order** of the middlewares we used.
+
+We may discuss why and how Koa is designed in this way in the future posting, but for now, let's get back to our index.js.
+
+```js
+// index.js
+import Koa from 'koa';
+import Router from 'koa-router';
+import logger from 'koa-logger';
+import json from 'koa-json';
+import bodyParser from 'koa-bodyparser';
+
+const app = new Koa();
+const router = new Router();
+
+// response with Hello World
+router.get('/', async (ctx, next) => {
+  ctx.body = { msg: 'Hello World.' };
+  await next();
+});
+
+// Middlewares
+app.use(json());
+app.use(logger());
+// Routes
+app.use(router.routes()).use(router.allowedMethods());
+
+app.listen(8000, () => {
+  console.log('Koa Ready.');
+});
+```
+
+Here we have koa-json and koa-logger, which gives us pretty-printed json response and development style logger. Now everything is set and our Koa server is ready to serve.
+
+```
+node .
+-> Koa Ready.
+```
+
+We use `node` command to run the script and we should be able to see "Koa Ready." in console. If we make a request to `localhost:8000/` or open the browser and type it in as URL, we'll get a response in JSON like this:
+
+```json
+{
+  "msg": "Hello World."
+}
+```
+
+Congratulation! We've just created our Koa App. But hey, remember that we were suppose to use TypeScript? Don't worry, we'll be there soon.
+
+# 2. TypeScript
+
+As you may already known, [TypeScript](https://www.typescriptlang.org/) is a superset of JavaScript. It is JavaScript with syntax for types. To use TypeScript in our project, simply add a dependency.
+
+```
+npm install -D typescript
+```
+
+We also need a few more packages to be installed so that TypeScript won't complain about those missing types of globally objects like `console` and also types of Koa and its middlewares.
+
+```
+npm install -D @types/node @types/koa @types/koa-router @types/koa-json @types/koa-logger @types/koa-bodyparser
+```
+
+Now we are done with installation, and need to handle the TypeScript configuration of our project.
+
+```
+npx tsc --init
+```
+
+We can use this command to generate a `tsconfig.json` file in the root directory of the project. If you've install TypeScript globally, you can use a shorter version:
+
+```
+tsc --init
+```
+
+If you look into the `tsconfig.json` we've just generated, there are over a hundred lines of fields. Luckily in our simple project we only need a few of them, however it is recommend to check [TypeScript's document](https://aka.ms/tsconfig.json) to know more about each field. You may need them in other projects. The configuration for the current one is as below:
+
+```json
+{
+  "compilerOptions": {
+    "target": "es6" /* Set the JavaScript version for emitted JavaScript and include compatible library declarations.*/,
+    "module": "commonjs" /* Specify what module code is generated. */,
+    "moduleResolution": "node" /* Specify how TypeScript looks up a file from a given module specifier. */,
+    "outDir": "./build" /* Specify an output folder for all emitted files. */,
+    "esModuleInterop": true /* Emit additional JavaScript to ease support for importing CommonJS modules.*/,
+    "forceConsistentCasingInFileNames": true /* Ensure that casing is correct in imports. */,
+    "strict": true /* Enable all strict type-checking options. */,
+    "skipLibCheck": true /* Skip type checking all .d.ts files. */
+  },
+  "include": ["src/**/*"]
+}
+```
+
+There are two fields should be discuss a little bit more. `outDir` determines where to output the transpiled JavaScript files, and `include` determines which files should TypeScript compiler look for, in order to process with. In this case, we are asking TypeScript to compile all files in `/src` directory, and all the output files should be placed in `/build` folder.
+
+Now before we compiling, some changes to our code should be made. We will firstly change `index.js` to `index.tx`, since TypeScript use `.ts` as extension. In order to test out use some "types", we modify our code into this:
+
+```ts
+// index.ts
+import Koa from 'koa';
+import Router from 'koa-router';
+import logger from 'koa-logger';
+import json from 'koa-json';
+import bodyParser from 'koa-bodyparser';
+
+const app = new Koa();
+const router = new Router();
+
+interface RequestBody {
+  name: string;
+}
+
+// response with saying hello
+router.post('/', async (ctx, next) => {
+  const requestData: RequestBody = ctx.request.body;
+  ctx.body = { msg: `Hello ${requestData.name}.` };
+  await next();
+});
+
+// Middlewares
+app.use(json());
+app.use(logger());
+app.use(bodyParser());
+// Routes
+app.use(router.routes()).use(router.allowedMethods());
+
+app.listen(8000, () => {
+  console.log('Koa Ready.');
+});
+```
+
+We changed the accepted request method to `POST`, and the handler now will take the `name` from the request body then say hello in the response body. Also notice that we're using a middleware called `bodyParser`, which parses the request body for us. It supports `json`, `form` and `text` type body.  
+We also declared an `interface` named `RequestBody`, which contains a `string` filed called `name`. Now see this line:
+
+```ts
+const requestData: RequestBody = ctx.request.body;
+```
+
+`requestData` is expected to be type of `RequestBody`, since TypeScript have no idea about our expectation, so we're telling TypeScript explicitly by the `varible: type` syntax. Now TypeScript will automatically check if requestData has followed the structure of `RequestBody`. If we try to visit a property which is not declared in the interface, we'll get error from TypeScript:
+
+```ts
+// some code here...
+
+interface RequestBody {
+  name: string;
+}
+
+// response with saying hello
+router.post('/', async (ctx, next) => {
+  const requestData: RequestBody = ctx.request.body;
+
+  ctx.body = { msg: `Hello ${requestData.username}.` };
+  // visiting "username" of "requestData", which is not declared, and will get:
+  // Error: Property 'username' does not exist on type 'RequestBody'. ts(2339)
+
+  await next();
+});
+
+// and some code here...
+```
+
+This is very helpful if we by mistake, want to access anything other than `name` in `requestData`, we are violating the contract, and TypeScript will warn us if our IDE supports that, or throw an error while compiling. In this way, no longer spelling mistakes will lead to runtime crash, and also increase the readability of our code.
+
+It is important to remember that we are not going to have TypeScript in runtime, it only works in **compile-time** by default. Everything we have in runtime is still JavaScript. So here comes the problem, how do we get what we want (JavaScript) from what we have now (TypeScript)?
+
+Actually all you need is an one-line command. TypeScript provides us with a compiler, which compiles TypeScript to pure JavaScript. In command line, use:
+
+```
+npx tsc
+```
+
+or if you have TypeScript globally installed:
+
+```
+tsc
+```
+
+If there's no error pop out, we will see the `/build` folder (as we specified in `tsconfig.json`) in the root directory of our project. Now change to `/build`, and start the server:
+
+```
+cd build
+node .
+-> Koa Ready.
+```
+
+We can use `Postman` to test thing out. Create an API with `POST` method and set the body to:
+
+```json
+{
+  "name": "Kevin"
+}
+```
+
+Send the request to `localhost:8000/`. You'll find output in your console like this:
+
+```
+<-- POST /
+Hello Kevin.
+---> POST / 200 3ms
+```
+
+Cool, guess we are finally here. What we've done is the simplest version of a Koa server and plus a little bit feature provided by TypeScript. Hope you have fun with it.

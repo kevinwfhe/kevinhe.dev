@@ -1,0 +1,385 @@
+---
+title: 'How does Webpack pack your code?'
+date: '2021-08-02'
+intro: "Webpack is a static module bundler for modern JavaScript applications. While everyone knows this, not all of them know how webpack works. So let's dive a little deep inside to find how does Webpack pack our code."
+cover: './webpack.png'
+---
+
+import { Title, Image } from '../components';
+import WEBPACK from './webpack.png';
+
+<Image src={WEBPACK} title={'webpack.png'} />
+
+<Title title={'How does Webpack pack your code?'} />
+
+_August 2, 2021_
+
+Webpack is a static module bundler for modern JavaScript applications. While everyone knows this, not all of them know how it works. Today we'll dive a little deep inside and try to understand the magic by building a mini Webpack.
+
+# 1. Why Webpack
+
+Let's start with a question, why do we need Webpack? Now assuming that we have a function calls "add", which adds up two numbers. If we simply want to make it works in an `index.js`, we'll probably do this:
+
+```js
+// add.js
+function add(a, b) {
+  return a + b;
+}
+exports.default = add;
+
+// index.js
+var add = require('add.js').default;
+console.log('index.js', add(2, 3));
+```
+
+We run the `index.js`, and it is working:
+
+```
+-> index.js 5
+```
+
+What if we want to run the code in a browser? We'll need to load both `add.js` and `index.js` into a html file, and to keep it tidy, we'll use one script tag instead of two:
+
+```html
+<!-- index.html -->
+<body>
+  <script src="add.js"></script>
+  <script src="index.js"></script>
+
+  // which is equivalent to:
+
+  <script>
+    // add.js
+    function add(a, b) {
+      return a + b;
+    }
+    exports.default = add;
+
+    // index.js
+    var add = require('add.js').default;
+    console.log('index.js', add(2, 3));
+  </script>
+</body>
+```
+
+Start a server, then open the page, what we have is:
+
+```
+-> Uncaught ReferenceError: exports is not defined
+```
+
+To fix it, we need an `exports` object:
+
+```html
+<!-- index.html -->
+<body>
+  <script>
+    var exports = {};
+
+    function add(a, b) {
+      return a + b;
+    }
+    exports.default = add;
+
+    var add = require('add.js').default;
+    console.log('index.js', add(2, 3));
+  </script>
+</body>
+```
+
+but then another one comes out:
+
+```
+-> Uncaught ReferenceError: require is not defined
+```
+
+well, since `require` is only defined in NodeJS environment, we can't use it in browser. We have to make our own `"require"`. We know that what we expect from `require(add.js)` is the `exports` object, and we've defined it seconds ago!
+
+```html
+<!-- index.html -->
+<body>
+  <script>
+    var exports = {};
+    function require(file) {
+      return exports;
+    }
+
+    function add(a, b) {
+      return a + b;
+    }
+    exports.default = add;
+
+    var add = require('add.js').default;
+    console.log('index.js', add(2, 3));
+  </script>
+</body>
+```
+
+Great, now everything work just fine. However, it seems we are breaking the modular thingking. For example, if we define a variable `foo` inside `add.js`, it will become a global variable in this case, and we don't want that.
+
+```html
+<!-- index.html -->
+<body>
+  <script>
+    var exports = {};
+    function require(file) {
+      return exports;
+    }
+
+    // add.js
+    function add(a, b) {
+      return a + b;
+    }
+    var foo = 'foo'; // define foo
+    exports.default = add;
+
+    // index.js
+    var add = require('add.js').default;
+    console.log('index.js', foo); // -> 'foo', foo is exposed
+  </script>
+</body>
+```
+
+To deal with variable exposure, we can always use a **_closure_**:
+
+```html
+<!-- index.html -->
+<body>
+  <script>
+    var exports = {};
+    function require(file) {
+      return exports;
+    }
+    var addJS = `var foo = 'foo'; function add(a, b) { return a + b }; exports.default = add`;
+    (function (exports, code) {
+      eval(code);
+    })(exports, addJS);
+    var add = require('add.js').default;
+    console.log(add(2, 3), foo); // foo is no defined
+  </script>
+</body>
+```
+
+We use an **_IIFE (Immediately Invoked Function Expression)_** to create a closure which help us wrap the variable `foo` up. Since we've turned tha `add.js` into a string, we need `eval` to execute it. Now `foo` can't be accessed from outside anymore.
+
+We've already figured out `exports` and `require`. What's next? There're a few Todos. The `require` we have now can only return a hardcoded exports object, and don't fotget that `index.js` itself as an `entry` is also a module, how do we deal with it?
+
+In order to fix both Todos, we modified our code to something like this:
+
+```html
+<!-- index.html -->
+<body>
+  <script>
+    (function (dependencies) {
+      function require(file) {
+        var exports = {};
+        (function (exports, code) {
+          eval(code);
+        })(exports, dependencies[file]);
+        return exports;
+      }
+      require('index.js'); // "index.js" used as an entry
+    })({
+      'index.js': `var add = require('add.js').default; console.log(add(2, 3));`,
+      'add.js': `var foo = 'foo'; function add(a, b) { return a + b }; exports.default = add`,
+    });
+  </script>
+</body>
+```
+
+Here we have another IIFE which contains the `require` function we had before, and this IIFE takes an object as its argument, inside the execution, `require` is called recursively starting from `index.js`, whatever `file` is required, we retrieve the corresponding code from `dependencies`, and then `eval` it. By this, we can add any other modules we need into the dependencies object, and they will be required one by one.
+
+So far we've made our code work. However, it is impossible to list a dependencies object like we did before in a real project. Fortunately, that is what webpack actually does.
+
+When webpack processes your application, it internally builds a dependency graph from one or more entry points and then combines every module your project needs into one or more bundles, which are static assets to serve your content from.
+
+Plus, with webpack, we can do something more with our code when bundling it, for example converts from ES6 to ES5, as you can, in our previous code, we didn't use `import`, `export` which is ES6 syntax, because the browser doesn't support it. But with the help of webpack, we can use them in our code, and webpack will transform them into proper syntax as the output.  
+
+Find out more about webpack [here](https://webpack.js.org/concepts/).
+
+# 2. Build our own Webpack with Babel
+
+To build our Webpack, we need the following packages:
+
+```
+npm install -D @babel/core @babel/parser @babel/traverse @babel/preset-env
+```
+
+As its name says, `@babel/core` is the core of babel, which convert ES6 syntax to ES5. While `@babel/parser` can parse the code into **_AST (Abstract Syntax Tree)_**, `@babel/traverse` let us traverse through the AST. `@babel/preset-env` is a smart preset that allows us to use the latest JavaScript without needing to micromanage which syntax transforms (and optionally, browser polyfills) are needed by our target environment(s).
+
+Now let's create a file calls `webpack.js`. The first step we take is collecting all the dependencies, or, as we mentioned, builds a dependency graph.
+
+```js
+// webpack.js
+const fs = require('fs');
+const path = require('path');
+const parser = require('@babel/parser');
+const traverse = require('@babel/traverse').default;
+const babel = require('@babel/core');
+
+// Get info from a single module
+function getModuleInfo(file) {
+  // Read file content
+  const body = fs.readFileSync(file, 'utf-8');
+
+  // Parse to AST
+  const ast = parser.parse(body, {
+    sourceType: 'module', // We're parsing a ES Module
+  });
+
+  // Collecting dependencies
+  const deps = {};
+  traverse(ast, {
+    ImportDeclaration({ node }) {
+      const dirname = path.dirname(file);
+      const abspath = './' + path.join(dirname, node.source.value);
+      deps[node.source.value] = abspath;
+    },
+  });
+
+  // Convert ES6 to ES5
+  const { code } = babel.transformFromAst(ast, null, {
+    presets: ['@babel/preset-env'],
+  });
+  const moduleInfo = { file, deps, code };
+  return moduleInfo;
+}
+```
+
+Here we have function `getModuleInfo`, which help us parse the code in a single module into AST, and then traverse the AST, note that with `ImportDeclaration`, it means when we find an `import` statement during the traverse, we execute the callback. Inside the callback, we make up the `abspath` of the imported file and store it in `deps` object. After that, we use `babel.transformFromAst` to transform the ES6 syntax to ES5, then return the `moduleInfo`, which contains the filename, dependencies and the code of the current module.
+
+`getModuleInfo` is for a single module, so now we need to find a way to collect module info from all modules.
+
+```js
+// webpack.js
+
+// Recursively retrieve all module info
+function getDeps(temp, { deps }) {
+  Object.keys(deps).forEach((key) => {
+    const depModule = getModuleInfo(deps[key]);
+    temp.push(depModule);
+    getDeps(temp, depModule);
+  });
+}
+
+// Generate a dependency graph with the collected module info.
+function parseModules(file) {
+  const entryModule = getModuleInfo(file);
+  const temp = [entryModule];
+  const depsGraph = {};
+
+  getDeps(temp, entryModule);
+
+  temp.forEach((moduleInfo) => {
+    depsGraph[moduleInfo.file] = {
+      deps: moduleInfo.deps,
+      code: moduleInfo.code,
+    };
+  });
+  return depsGraph;
+}
+```
+
+Here we have `getDeps` being called inside `parseModule`, which use **_BFS (Breadth First Search)_** to recursively retrieves all module info starting from the `entryModule`. When the collecting is done, we iterate the `temp` array and generate the `depsGraph` object, which looks like this:
+
+```js
+depsGraph {
+  [module.filename] : {
+    deps: module.dependencies,
+    code: module.code
+  },
+  ...
+}
+```
+
+Now with the `depsGraph`, we are able to pack all of them together. Remember the `require` function we've made before?
+We will need it soon.
+
+```js
+// webpack.js
+
+function bundle(file) {
+  const depsGraph = JSON.stringify(parseModules(file));
+  return `(function (graph) {
+        function require(file) {
+            function absRequire(relPath) {
+                return require(graph[file].deps[relPath])
+            }
+            var exports = {};
+            (function (require,exports,code) {
+                eval(code)
+            })(absRequire,exports,graph[file].code)
+            return exports
+        }
+        require('${file}')
+    })(${depsGraph})`;
+}
+const content = bundle('./src/index.js');
+```
+
+Inside `bundle` function, we've seen most of the code in **Part1: Why Webpack**. We firstly performe the dependencies collection using `parseModules` with `"./src/index.js"` as an `entry`. Once we have the dependencies graph, we start requiring them one by one.
+
+Note that there is a function calls `absRequire`, since it is possible that we call `require()` with a reletive path in CommonJS, and there's no gurantee we can use those relative paths to resolve modules when the bundle being executed in runtime, it is important to find out an absolute path of the module being required.
+
+In the `getModuleInfo` function before, we already figure out the absolute path for each module, and it's somewhere inside the `depsGraph` we've just collected, so we can just retrieve it with `graph[file].deps[relPath]`.
+
+Finally, we can write the result of `bundle` into the the script file `bundle.js` that we will load in `index.html`:
+
+```js
+// webpack.js
+
+var fs = require('fs');
+const content = bundle('./src/index.js');
+
+// Create output directory './dist' if it does not exist.
+!fs.existsSync('./dist') && fs.mkdirSync('./dist');
+
+// Write content into 'bundle.js'
+fs.writeFileSync('./dist/bundle.js', content);
+```
+
+# 3. Pack it up!
+
+We've finish coding now. Let's try it out! What we have now:
+
+```js
+// add.js
+function add(a, b) {
+  return a + b;
+}
+var foo = 'foo';
+exports.default = add;
+
+// index.js
+var add = require('add.js').default;
+console.log('index.js', add(2, 3));
+
+// index.html
+<body>
+    <script src="./bundle.js"></script>
+</body>
+```
+and the project structure looks like this:
+```
+mini-webpack
+    |_ dist
+    |   |_ index.html
+    |_ src
+    |   |_ index.js
+    |   |_ add.js
+    |_ webpack.js
+```
+
+Now we execute `webpack.js`:
+```
+node webpack.js
+```
+
+we'll find a `bundle.js` under `dist`, and inside `bundle.js`, we can see exactly what we bundled. 
+
+Now start a server, and open the `index.html` in a browser, what we can see in console:
+```
+-> index.js: 5
+```
+
+Congratulation! Our mini webpack works! What we've done is a bundler imitating webpack. Hope you have fun with it.

@@ -1,0 +1,120 @@
+#about {
+  background-color: $primary-color;
+  background-image: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  color: $white-color;
+  height: 100%;
+  border-top: 0px;
+  -webkit-clip-path: polygon(0 0, 100% 0, 100% 80%, 0 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 80%, 0 100%);
+  padding-bottom: 10%;
+
+  @include respond(tab-land) {
+    height: 100%;
+    -webkit-clip-path: none;
+    clip-path: none;
+  }
+
+  .about-wrapper {
+    @include respond(phone) {
+      padding-bottom: 5rem;
+    }
+
+    &__image {
+      display: flex;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+
+      @include respond(tab-port) {
+        padding-bottom: 6.4rem;
+      }
+      @include respond(tab-land) {
+        height: 100%;
+      }
+    }
+
+    &__info {
+      display: flex;
+      height: 100%;
+      justify-content: center;
+      flex-direction: column;
+
+      @include respond(phone) {
+        align-items: center;
+      }
+
+      &-text {
+        text-align: left;
+
+        @include respond(tab-port) {
+          font-size: 1.5rem;
+        }
+        @include respond(phone) {
+          font-size: 1.6rem;
+        }
+
+        &--important {
+          background: darken($secondary-color, 1%);
+          display: inline-block;
+          font-style: italic;
+          padding: 0 0.3rem;
+          margin: 0.3rem 0;
+          line-height: 1.6;
+
+          @include respond(phone) {
+            display: inline;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-style: normal;
+          }
+        }
+      }
+    }
+  }
+
+  .lds-ring,
+  .lds-ring--hover {
+    display: inline-block;
+    position: relative;
+    width: 15px;
+    height: 14px;
+  }
+  .lds-ring div,
+  .lds-ring--hover div {
+    box-sizing: border-box;
+    display: block;
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    margin: 2px;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    animation: lds-ring 1.5s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    border-color: #fff transparent transparent transparent;
+  }
+  .lds-ring--hover div {
+    border: 3px solid $secondary-color;
+    border-color: $secondary-color transparent transparent transparent;
+  }
+  .lds-ring div:nth-child(1),
+  .lds-ring--hover div:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+  .lds-ring div:nth-child(2),
+  .lds-ring--ring div:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .lds-ring div:nth-child(3),
+  .lds-ring--hover div:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+  @keyframes lds-ring {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+}
