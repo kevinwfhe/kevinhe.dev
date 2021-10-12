@@ -4,12 +4,12 @@
 FROM nikolaik/python-nodejs:latest as build-stage
 WORKDIR /app
 COPY package*.json ./
-RUN npm config set registry https://registry.npm.taobao.org
+RUN npm config set registry "https://registry.npm.taobao.org"
 RUN npm config set sharp_binary_host "https://npm.taobao.org/mirrors/sharp"
 RUN npm config set sharp_libvips_binary_host "https://npm.taobao.org/mirrors/sharp-libvips"
 RUN npm install
 COPY . .
-RUN npm global add gatsby-cli
+RUN npm global install gatsby-cli
 RUN gatsby build
 
 # production stage

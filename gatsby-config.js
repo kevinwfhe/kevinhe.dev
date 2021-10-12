@@ -28,12 +28,6 @@ module.exports = {
       },
     },
     {
-      resolve: `gatsby-plugin-page-creator`,
-      options: {
-        path: `${__dirname}/src/blog`
-      }
-    },
-    {
       resolve: `gatsby-plugin-manifest`,
       options: {
         name: `Kevin He Blog`,
