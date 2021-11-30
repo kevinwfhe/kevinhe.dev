@@ -20,22 +20,22 @@ const Footer = () => {
             networks.map((network) => {
               const { id, name, url, icon } = network;
               return (
-                <a
-                  key={id}
-                  href={url}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                  aria-label={name}
-                >
+                <a key={id} href={url} rel="noopener noreferrer" target="_blank" aria-label={name}>
                   <i className={icon} />
                 </a>
               );
             })}
         </div>
         <hr />
-        <p className="footer__text">
-          © {new Date().getFullYear()} - By {'Kevin (Wenfeng) He'}
-        </p>
+        <p className="footer__text">© {new Date().getFullYear()} - By Kevin (Wenfeng) He</p>
+        <a
+          href="https://beian.miit.gov.cn/"
+          rel="noopener noreferrer"
+          target="_blank"
+          className="footer__text"
+        >
+          粤ICP备20008528号
+        </a>
       </Container>
     </footer>
   );
