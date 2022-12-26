@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Hero from './Hero/Hero';
 import About from './About/About';
-import Blog from './Blog';
+import Blog from './Blog/index.tsx';
 import Contact from './Contact/Contact';
-import Footer from './Footer/Footer';
 
 import { PortfolioProvider } from '../context/context';
 
@@ -28,7 +27,6 @@ function App() {
       <About />
       <Blog />
       <Contact />
-      <Footer />
     </PortfolioProvider>
   );
 }

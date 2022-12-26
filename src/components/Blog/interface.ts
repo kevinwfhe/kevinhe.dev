@@ -1,12 +1,12 @@
-import { IGatsbyImageData } from "gatsby-plugin-image";
+import { IGatsbyImageData } from 'gatsby-plugin-image';
 
-interface postProps {
+interface IPostProps {
   title: string;
   date: string;
   intro: string;
-  postCover: IGatsbyImageData;
+  postCover?: IGatsbyImageData;
   slug: string;
   isMobile: boolean;
 }
 
-export { postProps };
+export { IPostProps };

@@ -1,20 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Row } from 'react-bootstrap';
-import Title from '../Title/Title';
-import { Link, graphql, useStaticQuery } from 'gatsby';
+import { graphql, useStaticQuery } from 'gatsby';
 import { getImage } from 'gatsby-plugin-image';
+import Title from '../Title/Title';
 import PostItem from './PostItem';
-import { postProps } from './interface';
+import type { IPostProps } from './interface';
 
 const Blog = () => {
   const data = useStaticQuery(graphql`
     query {
-      allMdx(
-        sort: {
-          fields: frontmatter___date, order: DESC
-        },
-        limit: 3
-      ) {
+      allMdx(sort: { fields: frontmatter___date, order: DESC }, limit: 3) {
         nodes {
           slug
           id
@@ -41,7 +36,7 @@ const Blog = () => {
     }
   }, []);
 
-  console.log(data.allMdx.nodes)
+  console.log(data.allMdx.nodes);
 
   return (
     <section id="projects">
@@ -54,7 +49,7 @@ const Blog = () => {
               slug,
             } = node;
             const postCover = getImage(cover);
-            const postProps: postProps = {
+            const postProps: IPostProps = {
               title,
               date,
               intro,

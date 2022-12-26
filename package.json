@@ -57,6 +57,11 @@
     "lint-staged": "^10.2.11",
     "prettier": "^2.0.5"
   },
+  "overrides": {
+    "gatsby-plugin-sharp" : {
+      "probe-image-size": "^7.0.0"
+    }
+  },
   "bugs": {
     "url": "https://github.com/gatsbyjs/gatsby/issues"
   },

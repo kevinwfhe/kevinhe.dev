@@ -3,9 +3,9 @@ import Fade from 'react-reveal/Fade';
 import Tilt from 'react-tilt';
 import { Link } from 'gatsby';
 import { GatsbyImage } from 'gatsby-plugin-image';
-import { postProps } from './interface';
+import { IPostProps } from './interface';
 
-const PostItem = ({ title, postCover, date, intro, slug, isMobile }: postProps) => {
+const PostItem = ({ title, postCover, date, intro, slug, isMobile }: IPostProps) => {
   return (
     <>
       <Fade right={!isMobile} bottom={isMobile} duration={1000} delay={1000} distance="30px">

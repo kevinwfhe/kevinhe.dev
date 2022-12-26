@@ -39,6 +39,6 @@ module.exports = {
         icon: 'src/images/favicon.png',
       },
     },
-    'gatsby-plugin-mdx'
+    'gatsby-plugin-mdx',
   ],
 };

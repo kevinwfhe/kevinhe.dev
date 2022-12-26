@@ -1,19 +1,17 @@
 
 # dockerfile
 # build stage
-FROM nikolaik/python-nodejs:latest as build-stage
+FROM jecastro2/python-nodejs:3.9.12-common as build-stage
 WORKDIR /app
 COPY package*.json ./
-RUN npm config set registry "https://registry.npm.taobao.org"
-RUN npm config set sharp_binary_host "https://npm.taobao.org/mirrors/sharp"
-RUN npm config set sharp_libvips_binary_host "https://npm.taobao.org/mirrors/sharp-libvips"
 RUN npm install
 COPY . .
-RUN npm install -g gatsby-cli
+RUN npm install -g gatsby-cli@^4.2.0
 RUN gatsby build
 
-# production stage
-FROM nginx:stable-alpine as production-stage
+
+# host stage
+FROM nginx:stable-alpine as host
 COPY --from=build-stage /app/public /usr/share/nginx/html
 EXPOSE 80
 EXPOSE 443
