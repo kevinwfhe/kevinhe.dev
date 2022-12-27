@@ -5,11 +5,11 @@ import { Container } from 'react-bootstrap';
 import Fade from 'react-reveal/Fade';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import { headData } from '../mock/data';
+import { META_DATA } from '../data';
 import '../style/main.scss';
 
 const NotFound = () => {
-  const { lang } = headData;
+  const { lang } = META_DATA;
 
   return (
     <>
@@ -42,4 +42,4 @@ const NotFound = () => {
   );
 };
 
-export default NotFound
+export default NotFound;

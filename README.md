@@ -1,3 +1,3 @@
 # README.md
 
-See https://kevinhe.tech
+See https://kevinhe.dev

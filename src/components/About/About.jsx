@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/click-events-have-key-events */
 import React, { useContext, useState, useEffect } from 'react';
 import Fade from 'react-reveal/Fade';
 import { Container, Row, Col } from 'react-bootstrap';
@@ -8,7 +7,7 @@ import PortfolioContext from '../../context/context';
 
 const About = () => {
   const { about } = useContext(PortfolioContext);
-  const { img, paragraphOne, paragraphTwo, paragraphThree } = about;
+  const { img, paragraphOne, paragraphTwo, paragraphThree, resume: resumeURL } = about;
 
   const [isDesktop, setIsDesktop] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -17,22 +16,7 @@ const About = () => {
 
   const downloadResume = async () => {
     setIsDownloading(true);
-    const resume = await fetch('http://kevinhe.tech:8000/resume', {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    const resumeBlob = await resume.blob();
-    const resumeURL = URL.createObjectURL(resumeBlob);
-
-    const anchor = document.createElement('a');
-    anchor.href = resumeURL;
-    anchor.download = 'Resume-Kevin HE.pdf';
-
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(resumeURL);
+    window.open(resumeURL);
     setIsDownloading(false);
   };
 
@@ -74,13 +58,13 @@ const About = () => {
                     Resume{' '}
                     {isDownloading ? (
                       <div className={`lds-ring${isResumeHover ? '--hover' : ''}`}>
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                        <div></div>
+                        <div />
+                        <div />
+                        <div />
+                        <div />
                       </div>
                     ) : (
-                      <i className="fas fa-download"></i>
+                      <i className="fas fa-download" />
                     )}
                   </a>
                 </span>
