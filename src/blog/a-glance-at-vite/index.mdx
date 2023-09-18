@@ -1,9 +1,162 @@
 ---
-title: "A Glance at Vite"
-date: "2019-08-02"
+title: "How does Vite pack your code?"
+date: "2023-09-18"
 intro: "Vite is a next generation frontend tooling. It build the application with esbuild, which featuring instant server start and lightning fast HMR. The solution is different from tools like Webpack or Rollup, but similar to no-bundle native ESM dev server like Snowpack."
 cover: "./vite.jpg"
 ---
 
-![vite](vite.jpg)
-# A Glance at Vite
+import { Title, Image } from '../components';
+import VITE from './vite.jpg';
+
+<Image src={VITE} title={'vite.jpg'} />
+
+<Title title={'How does Vite pack your code?'} />
+
+_September 18, 2023_
+
+Short answer, it packs your code by not packing your code (in dev mode).
+
+Vite is a modern build tool that significantly improves the frontend development experience. Many developers appreciate its lightning-fast dev server and efficient build times, but few truly understand the magic behind how Vite packs your code. Today, we'll explore this by creating a simplified version of how Vite operates under the hood.
+
+# 1. Why Vite?
+
+Let's begin by asking ourselves: Why do we need Vite? Assume we have a simple function called "add" that sums two numbers. Traditionally, bundlers like Webpack would pack your JavaScript modules into a single file.
+
+```js
+// add.js
+export default function add(a, b) {
+  return a + b;
+}
+
+// index.js
+import add from './add.js';
+console.log('index.js', add(2, 3));
+```
+
+However since modern browsers now support ES modules natively, if we want to run this in a browser without bundling, we might do:
+
+```html
+<!-- index.html -->
+<body>
+  <script type="module" src="./index.js"></script>
+</body>
+```
+
+So, why do we still need Vite?
+
+Even though modern browsers can handle ES modules, having many modules causes network congestion due to multiple HTTP requests. Moreover, not all browsers fully support the latest JavaScript or advanced features like JSX or TypeScript directly.
+
+This is where Vite comes into play. It provides both a fast dev server leveraging native ES modules and a powerful bundling tool (via Rollup) for production builds.
+
+# 2. Not packing your code
+
+Vite's dev server doesn’t bundle your files at development time. Instead, it relies on the browser's native ES module system:
+
+When you request a file, Vite quickly transforms it on-demand.
+
+It caches and serves each module separately as ES modules.
+
+When you import something in your code, the browser directly requests that module from Vite's server.
+
+Consider our add example:
+
+When you run `npm run dev`, Vite starts a local server. Accessing `index.html` triggers the browser to fetch `index.js`, and Vite quickly transforms the imports for compatibility:
+
+Original code:
+```js
+import add from './add.js';
+console.log(add(2, 3));
+```
+Transformed by Vite into something like:
+```js
+import add from '/@fs/src/add.js';
+console.log(add(2, 3));
+```
+Notice Vite resolves module paths and serves them as browser-friendly URLs.
+
+# 3. How Vite Handles Dependencies
+
+Unlike your source code, external dependencies (like libraries from node_modules) are pre-bundled by Vite using esbuild during server start. This drastically reduces network requests.
+
+For example:
+```js
+import React from 'react';
+```
+During server initialization, Vite converts dependencies into pre-bundled ES modules:
+```
+node_modules/.vite/react.js
+```
+This single bundled module is quickly served whenever React is imported, greatly enhancing load times.
+
+# 4. Production Builds with Rollup
+
+For production builds, Vite switches from its dev-server model to bundling using Rollup:
+
+It generates optimized, minified, and tree-shaken bundles.
+
+Your code and dependencies are efficiently packed into fewer files for production deployment.
+
+You may find Vite acts similar to other bundler like Webpack when coming to bundling a production build, except that it uses Rollup under the hood.
+
+# 5. Let's Try Building a Simple Version of Vite
+
+To demonstrate the core concept, let's create a mini-version of a Vite-like dev server:
+
+Install necessary packages:
+```
+npm install express esbuild cors serve
+```
+Here's a simplified implementation:
+```js
+// mini-vite.js
+const express = require('express');
+const esbuild = require('esbuild');
+const cors = require('cors')
+const fs = require('fs');
+
+const app = express();
+app.use(cors())
+
+app.get('/*.js', async (req, res) => {
+  const filepath = '.' + req.path;
+  if (fs.existsSync(filepath)) {
+    const result = await esbuild.transform(fs.readFileSync(filepath, 'utf-8'), {
+      loader: 'js',
+      format: 'esm',
+    });
+    res.type('js').send(result.code);
+  } else {
+    res.status(404).end();
+  }
+});
+
+app.listen(3000, () => console.log('Mini Vite server running at http://localhost:3000'));
+```
+
+```js
+// add.js
+export default function add(a, b) {
+  return a + b;
+}
+
+// index.js
+import add from "./add.js";
+console.log(add(1, 2));
+```
+
+```html
+<html>
+  <body>
+    <script type="module" src="http://localhost:3000/index.js"></script>
+  </body>
+</html>
+```
+
+Now start the vite dev server with `node mini-vite.js`, and then serve the html entry with `serve -p 8080`. Go to `localhost:8080/index.html` in browser and open the console, you should see `3`, which means your modules are served quickly without pre-bundling, just like Vite!
+
+# 6. Wrapping Up
+
+We've walked through the magic of how Vite efficiently handles modules during development and production. Unlike traditional bundlers, Vite cleverly leverages modern browser capabilities and fast build tools like esbuild and Rollup to deliver a blazing-fast developer experience.
+
+Explore more about Vite [here](https://vite.dev/guide/). Happy coding!
+

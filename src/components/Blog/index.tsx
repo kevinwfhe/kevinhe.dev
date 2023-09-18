@@ -3,13 +3,13 @@ import { Container, Row } from 'react-bootstrap';
 import { graphql, useStaticQuery } from 'gatsby';
 import { getImage } from 'gatsby-plugin-image';
 import Title from '../Title/Title';
-import PostItem from './PostItem';
+import PostItem from './PostItem.tsx';
 import type { IPostProps } from './interface';
 
 const Blog = () => {
   const data = useStaticQuery(graphql`
     query {
-      allMdx(sort: { fields: frontmatter___date, order: DESC }, limit: 3) {
+      allMdx(sort: { fields: frontmatter___date, order: DESC }) {
         nodes {
           slug
           id
@@ -35,8 +35,6 @@ const Blog = () => {
       setIsMobile(true);
     }
   }, []);
-
-  console.log(data.allMdx.nodes);
 
   return (
     <section id="projects">
