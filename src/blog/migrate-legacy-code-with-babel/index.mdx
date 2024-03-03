@@ -1,0 +1,192 @@
+---
+title: "Migrate legacy code with Babel"
+date: "2024-03-02"
+intro: "How Babel helps automate the migration from legacy inheritance patterns to the modern ES6 extends syntax using AST manipulation."
+cover: "./babel.png"
+---
+
+import { Title, Image } from '../components';
+import BABEL from './babel.png';
+
+<Image src={BABEL} title={'babel.png'} />
+
+<Title title={'Migrate legacy code with Babel'} />
+
+_March 02, 2024_
+
+Legacy JavaScript codebases often use patterns that were popular before the widespread adoption of modern JavaScript standards like ES6. One common legacy pattern is extending classes using custom helper methods such as inheritsFrom. Migrating such legacy code manually can be tedious and error-prone. Fortunately, tools like Babel simplify this process dramatically through Abstract Syntax Tree (AST) transformations.
+
+Today, we'll dive into how Babel helps automate the migration from legacy inheritance patterns to the modern ES6 extends syntax using AST manipulation.
+
+# 1. What is Babel and AST?
+
+Babel is a powerful JavaScript compiler capable of transforming modern JavaScript into older versions for compatibility. It can also perform code migrations and modernizations.
+
+Abstract Syntax Tree (AST) is a structured representation of code that enables precise and reliable code transformations.
+
+We can use Babel to transform code into AST, which is easy to manipulate because its structured natures.
+
+Let's explore a practical example where we migrate legacy JavaScript code using Babel.
+
+Consider this legacy snippet:
+```js
+Function.prototype.inheritsFrom = /* some logic */;
+
+export function ChildClass() {
+  ParentClass.call(this);
+}
+
+ChildClass.inheritsFrom(ParentClass);
+```
+
+This code uses an `inheritsFrom` function to extend the `ChildClass` from its `ParentClass`. This is a common case before ES6 introduces `class` syntax.
+
+Our goal is to convert this pattern to the modern ES6 class syntax:
+```js
+export class ChildClass extends ParentClass {
+  constructor() {
+    super();
+  }
+}
+```
+If we are to update a single file or just a few of them, it would take less than a minute. But what if we are talking about hundreds if not thousands of this kind of files? It would be a total nightmare.
+
+# 2. Automating the migration
+
+But don't worry, when it comes to redundant and repeated work, batch processing is always an option.
+
+Here's a simplified breakdown of the migration steps performed by Babel:
+
+- Parsing: Babel parses the JavaScript code into an AST, a tree-like data structure.
+
+- Traversing: We analyze the AST to detect specific patterns (e.g., calls to inheritsFrom).
+
+- Transforming: We manipulate the AST to replace detected patterns with equivalent modern syntax.
+
+- Generating: Finally, Babel generates the transformed JavaScript code from the modified AST.
+
+Let's go through this step-by-step.
+
+First, install all the necessary packages:
+
+```
+npm install @babel/traverse @babel/parser @babel/generator @babel/types
+```
+
+Next, create a file `migrate.js`.
+
+Let's say we have a file path. The very first step is we need to read the file in and parse it into an AST:
+```js
+import parser from '@babel/parser'
+import fs from 'fs'
+
+const file = "/path/to/legacy/file"
+const body = fs.readFileSync(file, "utf-8")
+const ast = parser.parse(body, { sourceType: "module" });
+```
+
+Once we get the AST, we will be able to traverse through it to identify the targeted legacy pattern and collect information that we need to modify the AST:
+
+```js
+import traverse from '@babel/traverse'
+
+let className, superClassName
+
+traverse(ast, {
+  CallExpression(path) {
+    if (path.node.callee?.property?.name === 'inheritsFrom') {
+      className = path.node.callee.object.name // preserve the child class's name
+      superClassName = path.node.arguments[0].name // preserve the parent class's name
+      path.remove() // remove the call
+      return
+    }
+    if (path.node.callee?.property?.name === 'call') {
+      path.remove() // remove the call
+      return
+    }
+  }
+});
+```
+Here we remove the `inheritsFrom` call as well as the call to `call` method and gather information to construct the new ES6 class.
+
+With the first traverse, we cleaned up the legacy usage and collected the information we need to reconstruct the new class in ES6 syntax. And now we can traverse again to make the real update.
+```js
+import * as type from '@babel/types'
+
+let modified = false
+traverse(ast, {
+  FunctionDeclaration(path) {
+    if (path.parent.type === 'ExportNamedDeclaration') {
+      // targeting function declaration under export statement
+      if (modified === true) {
+        path.skip() // to prevent duplication
+        return
+      } 
+      modified = true
+
+      // build parent class constructor call
+      const constructorBody = type.blockStatement([
+        type.expressionStatement(
+          type.callExpression(
+            type.super(),
+            []
+          )
+        )
+      ]);
+
+      // construct class declaration node, put the constructor call under it
+      const classNode = type.classDeclaration(
+        type.identifier(className), // name of the child class
+        type.identifier(superClassName), // name of the parent class
+        type.classBody(
+          [
+            type.classMethod(
+              'constructor',
+              type.identifier('constructor'),
+              [],
+              constructorBody
+            )
+          ]
+        )
+      )
+
+      // replace function declaration with class declaration
+      path.parent.declaration = classNode
+      console.log(`$export function ${className} -> export class ${className} extends ${superClassName}`)
+    } else {
+      path.skip()
+    }
+  }
+})
+```
+Here we replaced the legacy syntax with the new ones, which involves a new class declaration and a new `constructor` call.
+
+Now the modification to the AST is done, we can use Babel's generator to output the updated JavaScript code:
+```js
+import generate from '@babel/generator'
+const { code } = generate(ast);
+console.log(code)
+```
+The original code
+```js
+export function ChildClass() {
+  ParentClass.call(this);
+}
+ChildClass.inheritsFrom(ParentClass);
+```
+becomes
+```js
+export class ChildClass extends ParentClass {
+  constructor() {
+    super();
+  }
+}
+```
+
+# 3. Wrapping Up
+
+The example here is very much simplified, there are many to consider in a real migration. Just to name a few, both the ChildClass and the ParentClass could have accepted some arguments, those arguments need to be preserved for sure. And for both ChildClass and ParentClass, they might have other logic in their constructors, those also need to be preserve.
+But by harnessing Babel and AST transformations, we've automated a significant and error-prone aspect of modernizing legacy JavaScript code. This powerful approach can help streamline your migration process and greatly improve code maintainability.
+
+Happy modernizing!
+

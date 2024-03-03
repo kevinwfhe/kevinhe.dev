@@ -7,7 +7,7 @@ const AboutImg = ({ filename, alt }) => (
   <StaticQuery
     query={graphql`
       query {
-        images: allFile(filter: { base: { eq: "profile.jpg" } }) {
+        images: allFile {
           edges {
             node {
               relativePath
