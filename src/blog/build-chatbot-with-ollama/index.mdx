@@ -1,0 +1,96 @@
+---
+title: "Build a chatbot in command line with Ollama"
+date: "2024-10-11"
+intro: "Ollama is an easy-to-use tool designed to deploy powerful AI models locally, such as Meta's Llama. It enables developers and hobbyists to run AI models effortlessly without requiring extensive cloud infrastructure or specialized hardware setups. About 2 weeks ago, Meta released their latest model llama 3.2. I've been wanted to build a little chatbot of my own since a while. This time we’ll build a simple command-line chatbot using Node.js, integrated with Ollama to interact with a local Llama model."
+cover: "./ollama.png"
+---
+
+import { Title, Image } from '../components';
+import OLLAMA from './ollama.png';
+
+<Image src={OLLAMA} title={'ollama.png'} />
+
+<Title title={'Build a chatbot in command line with Ollama'} />
+
+_October 11, 2024_
+
+Ollama is an easy-to-use tool designed to deploy powerful AI models locally, such as Meta's Llama. It enables developers and hobbyists to run AI models effortlessly without requiring extensive cloud infrastructure or specialized hardware setups. About 2 weeks ago, Meta released their latest model llama 3.2. I've been wanted to build a little chatbot of my own since a while. This time we’ll build a simple command-line chatbot using Node.js, integrated with Ollama to interact with a local Llama model.
+
+# 1. Setup Ollama and the server
+
+First, ensure you have Ollama installed. Ollama provides different download methods for each platform. See [GitHub - Ollama](https://github.com/ollama/ollama?tab=readme-ov-file#ollama)
+
+After installing Ollama, make sure it is up and running locally. Then, choose your model from the [list of available models](https://ollama.com/search). Since we are only running the model on a Macbook Pro, we are getting the standard Llama 3.2 with 3B parameters and takes 2GB space. If you want to get a model that is more hardware friendly, you can probably choose Llama 3.2 with 1B parameters.
+
+Next, initialize a new Node.js project and install a dependency for ease:
+```
+npm install node-fetch
+```
+# 2. Chatbot Script
+
+Create a new file named chatbot.js:
+```js
+const fetch = require('node-fetch');
+const readline = require('readline');
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+async function sendMessage(message) {
+  const response = await fetch('http://localhost:11434/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama3.2',
+      messages: [{ role: 'user', content: message }],
+      stream: false,
+    }),
+  });
+
+  const data = await response.json();
+  return data;
+}
+
+function chat() {
+  rl.question('You: ', async (message) => {
+    if (message.toLowerCase() === 'exit') {
+      rl.close();
+      return;
+    }
+
+    try {
+      const reply = await sendMessage(message);
+      console.log('Llama:', reply.message.content);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+
+    chat();
+  });
+}
+
+console.log("Chatbot started! Type 'exit' to quit.");
+chat();
+```
+
+Since Ollama provides a set of [APIs](https://github.com/ollama/ollama/blob/main/docs/api.md) that makes it a server out of the box, we can directly send request to the Ollama server hosted at `localhost:11434`. Here we are specifying the model that we chose in the request, and to keep it simple, we set `stream` to `false`, this way each answer from the model will be a full paragraph instead of words in chunks, so that we don't have to concat all the chunks to form a readable answer.
+
+Here we are using `readline` module to interact with the model from command line. Once we get an answer from the model, we repeat the `chat()` function so that we can keep talking to the model.
+
+# 3. Talk to me
+
+Start the chatbot by running:
+```
+node chatbot.js
+```
+Now, interact directly with your chatbot in the terminal:
+```
+Chatbot started! Type 'exit' to quit.
+You: Why is the sky blue?
+Llama: The sky is blue due to the scattering of sunlight by the atmosphere...
+```
+Wrapping Up
+
+This is a super simple yet powerful chatbot running entirely on your local machine using Ollama and Node.js. Although Ollama provides chatting with model in command line itself, the way we use a node server to communicate with it is probably more align with how LLMs are being used in read world business. We can experiment further by integrating different models and enhancing functionalities. Enjoy chatting!

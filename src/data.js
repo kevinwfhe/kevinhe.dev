@@ -9,23 +9,38 @@ export const META_DATA = {
 
 // HERO DATA
 export const HERO_DATA = {
-  title: "Hi, I'm ",
+  title: 'Hey, this is ',
   name: 'Kevin',
   postTitle: "and I'm a",
-  subtitle: 'Web Developer and Learner.',
+  subtitle: 'Learner and Builder.',
   cta: '',
 };
 
 // ABOUT DATA
-export const ABOUT_DATA = {
+export const ABOUT_ME = {
   img: 'profile.jpg',
   paragraphOne:
-    "I'm a 2023 new grad student from the University of Ottawa, with a master degree in Computer Engineering. I've worked as Software Engineer for 5 terms in my 3 internships, and I enjoy building with delightful user experience and developer experience in my mind.",
+    'I am Kevin, a Software Engineer with over 3 years experience who enjoy building delightful user experience and developer experience.',
   paragraphTwo:
-    "I have experience working with TypeScript/JavaScript, React, GraphQL, Python, Django etc. I'm now actively seeking a fulltime SDE opportunity starting from Jan 2023 or later.",
-  paragraphThree:
-    "To know more details about me, here's my resume, and feel free to reach out to me.",
-  resume: 'https://kevinhe-dev-bucket.s3.ca-central-1.amazonaws.com/resume-wenfeng-kevin-he.pdf', // if no resume, the button will not show up
+    'In most of my experience I am working with TypeScript/JavaScript, React, Electron, Node.js, GraphQL, Python, Django etc.',
+  paragraphThree: 'Grab a resume of mine (might not up-to-date) and feel free to reach out.',
+  resume: 'https://kevinhe-dev.s3.ca-central-1.amazonaws.com/kevin-he-resume.pdf', // if no resume, the button will not show up
+};
+
+export const ABOUT_CAT = {
+  img: 'chewy.jpg',
+  paragraphOne:
+    "I'm Chewy (Chuyi-初一), a Sleep Specialist with 1 year experience who is extreamly good at falling sleep amid noise and chaos.",
+  paragraphTwo:
+    'My most familiar setting is whenever dramas are on, or when there is a keyboard ASMR.',
+};
+
+export const ABOUT_DOG = {
+  img: 'fifteen.jpg',
+  paragraphOne:
+    "I'm Fifteen (Shiwu-十五), a Human-food Expert with over 2 years experience of smuggling left over on the table.",
+  paragraphTwo:
+    'I specialize in rating cuisine with a particular fondness for butter chicken, steak and pork bones.',
 };
 
 // CONTACT DATA

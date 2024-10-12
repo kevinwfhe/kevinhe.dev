@@ -6,11 +6,13 @@ import Contact from './Contact/Contact';
 
 import { PortfolioProvider } from '../context/context';
 
-import { HERO_DATA, ABOUT_DATA, CONTACT_DATA } from '../data';
+import { HERO_DATA, ABOUT_ME, ABOUT_CAT, ABOUT_DOG, CONTACT_DATA } from '../data';
 
 function App() {
   return (
-    <PortfolioProvider value={{ hero: HERO_DATA, about: ABOUT_DATA, contact: CONTACT_DATA }}>
+    <PortfolioProvider
+      value={{ hero: HERO_DATA, about: { ABOUT_ME, ABOUT_CAT, ABOUT_DOG }, contact: CONTACT_DATA }}
+    >
       <Hero />
       <About />
       <Blog />
