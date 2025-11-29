@@ -1,94 +1,132 @@
+/* eslint-disable react/prop-types */
 // src/pages/scale.tsx
 import React, { useCallback, useState } from 'react';
 import { Model } from 'survey-core';
 import { Survey } from 'survey-react-ui';
-import questions from '../ask/scale.json';
+import groupBy from 'lodash/groupBy';
+import questions from '../ask/scale';
+import { DIMENSION_TEXT } from '../ask/const';
+import SUGGESTIONS from '../ask/suggestion';
+import COMPLIMENTS from '../ask/compliment';
 import './scale.css';
 
 // Helper function to calculate total score for a dimension
-function calculateDimensionScore(survey, questionNames, reversedQuestions) {
+function calculateDimensionScore(dimensionQuestions) {
   let totalScore = 0;
   let count = 0;
-
-  questionNames.forEach((qName) => {
-    const answer = survey.data[qName];
-    if (answer !== undefined) {
-      let score = answer;
-      // Apply reversed scoring if needed
-      if (reversedQuestions.includes(qName)) {
-        score = 6 - answer;
+  console.log(dimensionQuestions);
+  dimensionQuestions
+    .filter((q) => !!q.score)
+    .forEach((q) => {
+      let { score } = q;
+      if (q.reverseScore) {
+        score = 6 - score;
       }
       totalScore += score;
       count += 1;
-    }
-  });
+    });
 
   return count > 0 ? totalScore / count : 0;
 }
 
 // Helper function to calculate all dimension scores
-function calculateAllScores(survey) {
-  // Define questions by dimension based on the spreadsheet
-  const dimensions = {
-    demand: {
-      questions: ['q1', 'q5', 'q8', 'q13', 'q18', 'q23', 'q28', 'q33', 'q38', 'q43'],
-      reversed: ['q8', 'q18', 'q38', 'q43'],
-    },
-    social: {
-      questions: ['q2', 'q6', 'q11', 'q16', 'q21', 'q26', 'q31', 'q36', 'q41'],
-      reversed: ['q2', 'q6', 'q21', 'q36', 'q41'],
-    },
-    autonomy: {
-      questions: ['q3', 'q10', 'q15', 'q20', 'q25', 'q30', 'q35', 'q40', 'q44'],
-      reversed: ['q10', 'q20', 'q35', 'q44'],
-    },
-    adjustment: {
-      questions: ['q4', 'q9', 'q14', 'q19', 'q24', 'q29', 'q34', 'q39'],
-      reversed: ['q4', 'q14', 'q24', 'q29', 'q39'],
-    },
-    cooperation: {
-      questions: ['q7', 'q12', 'q17', 'q22', 'q27', 'q32', 'q37', 'q42'],
-      reversed: ['q17', 'q27', 'q37'],
-    },
+function calculateAllScores(data) {
+  const scoredSortedQuestions = questions
+    .map((q) => ({
+      ...q,
+      score: data[q.qid],
+    }))
+    .sort((a, b) => a.score - b.score);
+  const groupByDimension = groupBy(scoredSortedQuestions, 'dimension');
+  const scoreByDimension = Object.entries(groupByDimension).reduce((score, current) => {
+    const [k, v] = current;
+    return {
+      ...score,
+      [k]: calculateDimensionScore(v),
+    };
+  }, {});
+  console.log(groupByDimension, scoreByDimension);
+  return {
+    groupByDimension,
+    scoreByDimension,
+  };
+}
+
+function selectQuestionsByScoreBands(sortedScore, groupByDimension) {
+  const bandedScore = sortedScore.map((score) => ({
+    dimension: score[0],
+    score: score[1],
+    high: score[1] >= 3,
+  }));
+  const highScoreQuestionByDim = bandedScore
+    .filter((s) => s.high)
+    .sort((a, b) => b.score - a.score)
+    .map((s) => {
+      const { dimension, score } = s;
+      return {
+        dimension,
+        average: score,
+        questions: groupByDimension[dimension],
+      };
+    });
+  const lowScoreQuestionByDim = bandedScore
+    .filter((s) => !s.high)
+    .sort((a, b) => a.score - b.score)
+    .map((s) => {
+      const { dimension, score } = s;
+      return {
+        dimension,
+        average: score,
+        questions: groupByDimension[dimension],
+      };
+    });
+
+  const selectedQuestions = [];
+  const usedQuestionIds = new Set();
+  const pickUniqueQuestion = (dimension) => {
+    if (!dimension) return null;
+
+    // Filter out questions already selected
+    const availableQuestions = dimension.questions.filter((q) => !usedQuestionIds.has(q.id));
+
+    if (availableQuestions.length === 0) return null;
+
+    // Pick a random question from the available list
+    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+    const question = availableQuestions[randomIndex];
+
+    selectedQuestions.push({ ...question, high: dimension.average >= 3 });
+    usedQuestionIds.add(question.qid);
+    return question;
   };
 
-  const scores = {
-    demand: calculateDimensionScore(
-      survey,
-      dimensions.demand.questions,
-      dimensions.demand.reversed
-    ),
-    social: calculateDimensionScore(
-      survey,
-      dimensions.social.questions,
-      dimensions.social.reversed
-    ),
-    autonomy: calculateDimensionScore(
-      survey,
-      dimensions.autonomy.questions,
-      dimensions.autonomy.reversed
-    ),
-    adjustment: calculateDimensionScore(
-      survey,
-      dimensions.adjustment.questions,
-      dimensions.adjustment.reversed
-    ),
-    cooperation: calculateDimensionScore(
-      survey,
-      dimensions.cooperation.questions,
-      dimensions.cooperation.reversed
-    ),
-  };
+  // Rule 1: Pick at most 2 questions of different dimensions in high score band
+  let highPicks = 0;
+  for (let i = 0; i < highScoreQuestionByDim.length; i += 1) {
+    const dim = highScoreQuestionByDim[i];
+    if (highPicks < 2) {
+      if (pickUniqueQuestion(dim)) {
+        highPicks += 1;
+      }
+    } else {
+      break; // Stop after two unique dimensions are processed
+    }
+  }
 
-  return scores;
+  // Rule 2: Pick 1 question in low score band (starting from the lowest one), if there's any.
+  const lowestLowDim = lowScoreQuestionByDim[0];
+  if (lowestLowDim) {
+    pickUniqueQuestion(lowestLowDim);
+  }
+  return selectedQuestions;
 }
 
 // Generate pages with all questions using RATING type
-const pages = questions.map((question, index) => ({
+const pages = questions.map((question) => ({
   elements: [
     {
       type: 'rating',
-      name: `q${index + 1}`,
+      name: question.qid.toString(),
       title: question.question,
       isRequired: true,
       rateMin: 1,
@@ -120,6 +158,8 @@ const surveyJson = {
 const ScalePage = () => {
   const survey = new Model(surveyJson);
   const [isComplete, setIsComplete] = useState(false);
+  const [scores, setScores] = useState(null);
+  const [selectedQuestions, setSelectedQuestions] = useState(null);
   // Apply mobile-friendly settings
   // survey.showNavigationButtons = 'top';
   survey.widthMode = 'responsive';
@@ -127,29 +167,143 @@ const ScalePage = () => {
   // Handle survey completion
   const onComplete = useCallback((sender) => {
     // Calculate dimension scores
-    const scores = calculateAllScores(sender);
+    // const mSenderData = {
+    //   1: 3,
+    //   2: 2,
+    //   3: 2,
+    //   4: 3,
+    //   5: 4,
+    //   6: 2,
+    //   7: 3,
+    //   8: 3,
+    //   9: 2,
+    //   10: 4,
+    //   11: 5,
+    //   12: 5,
+    //   13: 3,
+    //   14: 2,
+    //   15: 3,
+    //   16: 2,
+    //   17: 4,
+    //   18: 4,
+    //   19: 4,
+    //   20: 1,
+    //   21: 1,
+    //   22: 1,
+    //   23: 2,
+    //   24: 4,
+    //   25: 4,
+    //   26: 4,
+    //   27: 5,
+    //   28: 1,
+    //   29: 3,
+    //   30: 3,
+    //   31: 3,
+    //   32: 3,
+    //   33: 2,
+    //   34: 4,
+    //   35: 4,
+    //   36: 4,
+    //   37: 4,
+    //   38: 4,
+    //   39: 3,
+    //   40: 3,
+    //   41: 3,
+    //   42: 4,
+    //   43: 4,
+    //   44: 5,
+    //   45: 5,
+    //   46: 1,
+    //   47: 2,
+    //   48: 2,
+    //   49: 3,
+    //   50: 2,
+    //   51: 1,
+    //   52: 4,
+    //   53: 4,
+    //   54: 4,
+    //   55: 1,
+    //   56: 1,
+    //   57: 2,
+    //   58: 3,
+    // };
+    // console.log(mSender.data);
+    const { scoreByDimension, groupByDimension } = calculateAllScores(sender.data);
+    const sortedScore = Object.entries(scoreByDimension).sort(([, v1], [, v2]) => v2 - v1);
+    setScores(sortedScore);
+    const selectedQuesions = selectQuestionsByScoreBands(sortedScore, groupByDimension);
+    setSelectedQuestions(selectedQuesions);
     setIsComplete(true);
-    // Add scores to survey data for display in completedHtml
-    sender.setValue('demandScore', scores.demand.toFixed(2));
-    sender.setValue('socialScore', scores.social.toFixed(2));
-    sender.setValue('autonomyScore', scores.autonomy.toFixed(2));
-    sender.setValue('adjustmentScore', scores.adjustment.toFixed(2));
-    sender.setValue('cooperationScore', scores.cooperation.toFixed(2));
-
-    // Optional: Send results to your backend
-    console.log('Survey Results:', sender.data);
-    console.log('Dimension Scores:', scores);
   }, []);
 
   survey.onComplete.add(onComplete);
 
   return (
-    <div className="scale-page">{isComplete ? <CompletePage /> : <Survey model={survey} />}</div>
+    <div className="scale-page">
+      {isComplete ? (
+        <CompletePage scores={scores} selectedQuestions={selectedQuestions} />
+      ) : (
+        <Survey model={survey} />
+      )}
+    </div>
   );
 };
 
-const CompletePage = () => {
-  return <div>Completed</div>;
+const CompletePage = (props) => {
+  // eslint-disable-next-line react/prop-types
+  const { scores, selectedQuestions } = props;
+  const highScore = selectedQuestions.filter((q) => q.high);
+  const lowScore = selectedQuestions.filter((q) => !q.high);
+  return (
+    <div style={{ padding: 16 }}>
+      {scores.map(([dimension, score]) => (
+        <div>
+          {DIMENSION_TEXT[dimension]}: {score.toFixed(2)}
+        </div>
+      ))}
+      <br />
+      <br />
+      {highScore.length > 0 && (
+        <>
+          <h4>高分</h4>
+          <br />
+          {highScore.map((q) => (
+            <div>{q.highScoreText}</div>
+          ))}
+          <br />
+          <br />
+        </>
+      )}
+      <h4>低分</h4>
+      <br />
+      {lowScore.map((q) => (
+        <div>{q.lowScoreText}</div>
+      ))}
+      <br />
+      <br />
+      {highScore.length > 0 && (
+        <>
+          <h4>亮点</h4>
+          {highScore.slice(0, 2).map((s) => (
+            <>
+              <br />
+              <div>{COMPLIMENTS[s.dimension][0]}</div>
+            </>
+          ))}
+          <br />
+          <br />
+        </>
+      )}
+      {lowScore.length > 0 && (
+        <>
+          <h4>建议</h4>
+          <br />
+
+          <div>{SUGGESTIONS[lowScore[0].dimension][0]}</div>
+        </>
+      )}
+    </div>
+  );
 };
 
 export default ScalePage;
