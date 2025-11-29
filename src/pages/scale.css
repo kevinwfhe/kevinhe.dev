@@ -1,10 +1,8 @@
 /* src/pages/scale.css */
-
 /* Main container */
 .scale-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  background: #f3f4f6;
 }
 
 /* Survey container customization */
@@ -16,8 +14,8 @@
 .scale-page .sv-question {
   background: white;
   border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  padding: 32px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 }
 
@@ -36,42 +34,80 @@
   font-weight: 600;
 }
 
-/* Radio button customization for mobile */
-.scale-page .sv-selectbase__item {
-  min-height: 56px;
-  margin-bottom: 12px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px 16px;
-  transition: all 0.2s ease;
+/* Rating scale customization - THIS IS THE KEY */
+.scale-page .sv-rating {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+/* Rating item (each circle button) */
+.scale-page .sv-rating__item {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.scale-page .sv-selectbase__item:hover {
-  border-color: #667eea;
-  background: #f7fafc;
+.scale-page .sv-rating__item:hover {
+  border-color: #10b981;
 }
 
-.scale-page .sv-selectbase__item--checked {
-  border-color: #667eea;
-  background: #667eea;
+.scale-page .sv-rating__item--selected {
+  background: #10b981;
+  border-color: #10b981;
 }
 
-.scale-page .sv-selectbase__item--checked .sv-selectbase__label {
+.scale-page .sv-rating__item--selected .sv-rating__item-text {
   color: white;
+  font-weight: 600;
 }
 
-.scale-page .sv-selectbase__label {
+/* Rating item text (the number) */
+.scale-page .sv-rating__item-text {
   font-size: 16px;
-  font-weight: 500;
-  color: #2d3748;
-  width: 100%;
-  text-align: left;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* Min/Max descriptions - labels on edges */
+.scale-page .sv-rating__min-text,
+.scale-page .sv-rating__max-text {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 400;
+  white-space: nowrap;
+  margin: 0 8px;
+}
+
+.scale-page .sv-rating__min-text {
+  order: -1;
+  margin-right: 12px;
+}
+
+.scale-page .sv-rating__max-text {
+  order: 999;
+  margin-left: 12px;
 }
 
 /* Hide default radio input */
-.scale-page .sv-selectbase__item input[type='radio'] {
-  display: none;
+.scale-page input[type='radio'] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
 }
 
 /* Navigation buttons */
@@ -141,7 +177,7 @@
 
 /* Progress text */
 .scale-page .sv-progress-text {
-  color: white;
+  color: #4a5568;
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 10px;
@@ -207,7 +243,7 @@
 
 /* Survey title and description */
 .scale-page .sv-title {
-  color: white;
+  color: #2d3748;
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 16px;
@@ -215,7 +251,7 @@
 }
 
 .scale-page .sv-description {
-  color: rgba(255, 255, 255, 0.9);
+  color: #4a5568;
   font-size: 16px;
   margin-bottom: 24px;
   text-align: center;
@@ -228,26 +264,51 @@
 }
 
 /* Mobile optimizations */
-@media (max-width: 640px) {
-  .scale-page {
-    padding: 16px;
+@media (max-width: 480px) {
+  .sd-root-modern--mobile .sd-body.sd-body--responsive,
+  .sd-root-modern--mobile .sd-body.sd-body--static {
+    padding: 0;
+  }
+  .sd-rating__item-text.sd-rating__min-text,
+  .sd-rating__item-text.sd-rating__item-text.sd-rating__max-text {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  .sd-element--with-frame {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .sd-element__content.sd-question__content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .scale-page .sv-question {
-    padding: 20px 16px;
+    padding: 24px 16px;
   }
 
   .scale-page .sv-question__title {
     font-size: 16px;
   }
 
-  .scale-page .sv-selectbase__item {
-    min-height: 52px;
-    padding: 12px 14px;
+  .scale-page .sv-rating {
+    gap: 10px;
   }
 
-  .scale-page .sv-selectbase__label {
-    font-size: 15px;
+  .scale-page .sv-rating__item {
+    width: 44px;
+    height: 44px;
+  }
+
+  .scale-page .sv-rating__item-text {
+    font-size: 14px;
+  }
+
+  .scale-page .sv-rating__min-text,
+  .scale-page .sv-rating__max-text {
+    font-size: 12px;
+    margin: 0 4px;
   }
 
   .scale-page .sv-action__content {
@@ -286,17 +347,14 @@
 
 /* Touch optimization for mobile devices */
 @media (hover: none) and (pointer: coarse) {
-  .scale-page .sv-selectbase__item {
-    min-height: 56px;
+  .scale-page .sv-rating__item {
+    min-height: 48px;
+    width: 48px;
+    height: 48px;
   }
 
   .scale-page .sv-action__content {
     min-height: 52px;
-  }
-
-  /* Increase tap target size */
-  .scale-page .sv-selectbase__item {
-    padding: 16px;
   }
 }
 
@@ -332,20 +390,6 @@
   .scale-page .sv-description {
     font-size: 18px;
   }
-}
-
-/* Hide SurveyJS branding (requires commercial license) */
-/* Uncomment if you have a commercial license */
-/*
-.sv-brand-info {
-  display: none;
-}
-*/
-
-/* Loading state */
-.scale-page .sv-body--loading {
-  opacity: 0.6;
-  pointer-events: none;
 }
 
 /* Required indicator */
