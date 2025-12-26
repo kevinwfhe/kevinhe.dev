@@ -424,3 +424,144 @@
     transform: translateY(0);
   }
 }
+
+/* Result Page Layout */
+.result-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.result-header {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.result-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.result-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.result-column-header {
+  font-size: 18px;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.chart-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chart-section h5 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 16px;
+}
+
+.interpretation-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.interpretation-section h5 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 12px;
+}
+
+.interpretation-section p,
+.interpretation-section div {
+  font-size: 14px;
+  color: #4a5568;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.interpretation-section ul {
+  margin: 0;
+  padding-left: 0;
+  list-style-position: inside;
+}
+
+.interpretation-section li {
+  font-size: 14px;
+  color: #4a5568;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.score-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.score-list-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f7fafc;
+  border-radius: 6px;
+}
+
+.score-list-item .label {
+  color: #4a5568;
+}
+
+.score-list-item .value {
+  font-weight: 600;
+  color: #667eea;
+}
+
+/* Tri-quadrant chart container */
+.tri-quadrant-chart {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Mobile responsive for result page */
+@media (max-width: 768px) {
+  .result-container {
+    grid-template-columns: 1fr;
+  }
+
+  .result-page {
+    padding: 16px;
+  }
+
+  .result-header {
+    font-size: 22px;
+  }
+
+  .chart-section,
+  .interpretation-section {
+    padding: 16px;
+  }
+}

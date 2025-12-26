@@ -3,18 +3,26 @@
 import React, { useCallback, useState } from 'react';
 import { Model } from 'survey-core';
 import { Survey } from 'survey-react-ui';
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+} from 'recharts';
 import groupBy from 'lodash/groupBy';
 import questions from '../ask/scale';
-import { DIMENSION_TEXT } from '../ask/const';
+import { DIMENSION_TEXT, CATEGORY } from '../ask/const';
 import SUGGESTIONS from '../ask/suggestion';
 import COMPLIMENTS from '../ask/compliment';
+import { generateSummary } from '../ask/summary';
 import './scale.css';
 
 // Helper function to calculate total score for a dimension
 function calculateDimensionScore(dimensionQuestions) {
   let totalScore = 0;
   let count = 0;
-  console.log(dimensionQuestions);
   dimensionQuestions
     .filter((q) => !!q.score)
     .forEach((q) => {
@@ -157,9 +165,18 @@ const surveyJson = {
 
 const ScalePage = () => {
   const survey = new Model(surveyJson);
+
+  // // Prefill with random answers for testing
+  // const randomData = questions.reduce((acc, q) => {
+  //   acc[q.qid.toString()] = Math.floor(Math.random() * 5) + 1;
+  //   return acc;
+  // }, {});
+  // survey.data = randomData;
+
   const [isComplete, setIsComplete] = useState(false);
   const [scores, setScores] = useState(null);
   const [selectedQuestions, setSelectedQuestions] = useState(null);
+  const [summary, setSummary] = useState(null);
   // Apply mobile-friendly settings
   // survey.showNavigationButtons = 'top';
   survey.widthMode = 'responsive';
@@ -233,6 +250,9 @@ const ScalePage = () => {
     setScores(sortedScore);
     const selectedQuesions = selectQuestionsByScoreBands(sortedScore, groupByDimension);
     setSelectedQuestions(selectedQuesions);
+    // Generate summary
+    const generatedSummary = generateSummary(scoreByDimension);
+    setSummary(generatedSummary);
     setIsComplete(true);
   }, []);
 
@@ -241,7 +261,7 @@ const ScalePage = () => {
   return (
     <div className="scale-page">
       {isComplete ? (
-        <CompletePage scores={scores} selectedQuestions={selectedQuestions} />
+        <CompletePage scores={scores} selectedQuestions={selectedQuestions} summary={summary} />
       ) : (
         <Survey model={survey} />
       )}
@@ -249,59 +269,162 @@ const ScalePage = () => {
   );
 };
 
+const CATEGORY_NAMES = {
+  A: '性格特质',
+  S: '教养风格',
+  K: '孩子气质',
+};
+
+const CATEGORY_COLORS = {
+  A: '#8884d8',
+  S: '#82ca9d',
+  K: '#ffc658',
+};
+
 const CompletePage = (props) => {
   // eslint-disable-next-line react/prop-types
-  const { scores, selectedQuestions } = props;
+  const { scores, selectedQuestions, summary } = props;
   const highScore = selectedQuestions.filter((q) => q.high);
   const lowScore = selectedQuestions.filter((q) => !q.high);
-  return (
-    <div style={{ padding: 16 }}>
-      {scores.map(([dimension, score]) => (
-        <div>
-          {DIMENSION_TEXT[dimension]}: {score.toFixed(2)}
-        </div>
-      ))}
-      <br />
-      <br />
-      {highScore.length > 0 && (
-        <>
-          <h4>高分</h4>
-          <br />
-          {highScore.map((q) => (
-            <div>{q.highScoreText}</div>
-          ))}
-          <br />
-          <br />
-        </>
-      )}
-      <h4>低分</h4>
-      <br />
-      {lowScore.map((q) => (
-        <div>{q.lowScoreText}</div>
-      ))}
-      <br />
-      <br />
-      {highScore.length > 0 && (
-        <>
-          <h4>亮点</h4>
-          {highScore.slice(0, 2).map((s) => (
-            <>
-              <br />
-              <div>{COMPLIMENTS[s.dimension][0]}</div>
-            </>
-          ))}
-          <br />
-          <br />
-        </>
-      )}
-      {lowScore.length > 0 && (
-        <>
-          <h4>建议</h4>
-          <br />
 
-          <div>{SUGGESTIONS[lowScore[0].dimension][0]}</div>
-        </>
-      )}
+  // Transform scores by category for radar charts
+  const getRadarDataByCategory = (categoryKey) => {
+    const dimensions = CATEGORY[categoryKey];
+    return dimensions.map((dim) => {
+      const scoreEntry = scores.find(([d]) => d === dim);
+      return {
+        dimension: DIMENSION_TEXT[dim] || dim,
+        score: scoreEntry ? parseFloat(scoreEntry[1].toFixed(2)) : 0,
+        fullMark: 5,
+      };
+    });
+  };
+
+  // Get scores by category for display
+  const getScoresByCategory = (categoryKey) => {
+    const dimensions = CATEGORY[categoryKey];
+    return dimensions.map((dim) => {
+      const scoreEntry = scores.find(([d]) => d === dim);
+      return {
+        dimension: DIMENSION_TEXT[dim] || dim,
+        score: scoreEntry ? scoreEntry[1] : 0,
+      };
+    });
+  };
+
+  return (
+    <div className="result-page">
+      <h2 className="result-header">ASK ME 亲子匹配测评报告</h2>
+      <div className="result-container">
+        {/* Left Column: 测评结果 */}
+        <div className="result-column">
+          <h3 className="result-column-header">测评结果</h3>
+
+          {/* ASK-A: Radar Chart */}
+          <div className="chart-section">
+            <h5>ASK-A {CATEGORY_NAMES.A}</h5>
+            <ResponsiveContainer width="100%" height={220}>
+              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={getRadarDataByCategory('A')}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11 }} />
+                <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 9 }} />
+                <Radar
+                  name="得分"
+                  dataKey="score"
+                  stroke={CATEGORY_COLORS.A}
+                  fill={CATEGORY_COLORS.A}
+                  fillOpacity={0.6}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* ASK-S: Radar Chart */}
+          <div className="chart-section">
+            <h5>ASK-S {CATEGORY_NAMES.S}</h5>
+            <ResponsiveContainer width="100%" height={220}>
+              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={getRadarDataByCategory('S')}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11 }} />
+                <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 9 }} />
+                <Radar
+                  name="得分"
+                  dataKey="score"
+                  stroke={CATEGORY_COLORS.S}
+                  fill={CATEGORY_COLORS.S}
+                  fillOpacity={0.6}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* ASK-K: Radar Chart */}
+          <div className="chart-section">
+            <h5>ASK-K {CATEGORY_NAMES.K}</h5>
+            <ResponsiveContainer width="100%" height={220}>
+              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={getRadarDataByCategory('K')}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11 }} />
+                <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 9 }} />
+                <Radar
+                  name="得分"
+                  dataKey="score"
+                  stroke={CATEGORY_COLORS.K}
+                  fill={CATEGORY_COLORS.K}
+                  fillOpacity={0.6}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Right Column: 综合解读 */}
+        <div className="result-column">
+          <h3 className="result-column-header">综合解读</h3>
+
+          {/* 测评结果基础解读 */}
+          <div className="interpretation-section">
+            <h5>测评结果基础解读</h5>
+            {['A', 'S', 'K'].map((cat) => (
+              <div key={cat} style={{ marginBottom: 12 }}>
+                <strong>{CATEGORY_NAMES[cat]}</strong>
+                <div className="score-list">
+                  {getScoresByCategory(cat).map((item) => (
+                    <div key={item.dimension} className="score-list-item">
+                      <span className="label">{item.dimension}</span>
+                      <span className="value">{item.score.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 亮点&建议 */}
+          <div className="interpretation-section">
+            <h5>亮点 & 建议</h5>
+            <ul>
+              {highScore.length > 0 &&
+                highScore
+                  .slice(0, 2)
+                  .map((s) => <li key={s.dimension}>{COMPLIMENTS[s.dimension]?.[0]}</li>)}
+              {lowScore.length > 0 &&
+                lowScore.map((s) => <li key={s.dimension}>{SUGGESTIONS[s.dimension]?.[0]}</li>)}
+            </ul>
+          </div>
+
+          {/* 总结 */}
+          {summary && (
+            <div className="interpretation-section">
+              <h5>总结</h5>
+              <p>
+                {summary.partA} {summary.partB?.text}
+              </p>
+              {summary.partC && <p>{summary.partC}</p>}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
