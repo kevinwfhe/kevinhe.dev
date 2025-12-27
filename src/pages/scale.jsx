@@ -184,67 +184,6 @@ const ScalePage = () => {
   // Handle survey completion
   const onComplete = useCallback((sender) => {
     // Calculate dimension scores
-    // const mSenderData = {
-    //   1: 3,
-    //   2: 2,
-    //   3: 2,
-    //   4: 3,
-    //   5: 4,
-    //   6: 2,
-    //   7: 3,
-    //   8: 3,
-    //   9: 2,
-    //   10: 4,
-    //   11: 5,
-    //   12: 5,
-    //   13: 3,
-    //   14: 2,
-    //   15: 3,
-    //   16: 2,
-    //   17: 4,
-    //   18: 4,
-    //   19: 4,
-    //   20: 1,
-    //   21: 1,
-    //   22: 1,
-    //   23: 2,
-    //   24: 4,
-    //   25: 4,
-    //   26: 4,
-    //   27: 5,
-    //   28: 1,
-    //   29: 3,
-    //   30: 3,
-    //   31: 3,
-    //   32: 3,
-    //   33: 2,
-    //   34: 4,
-    //   35: 4,
-    //   36: 4,
-    //   37: 4,
-    //   38: 4,
-    //   39: 3,
-    //   40: 3,
-    //   41: 3,
-    //   42: 4,
-    //   43: 4,
-    //   44: 5,
-    //   45: 5,
-    //   46: 1,
-    //   47: 2,
-    //   48: 2,
-    //   49: 3,
-    //   50: 2,
-    //   51: 1,
-    //   52: 4,
-    //   53: 4,
-    //   54: 4,
-    //   55: 1,
-    //   56: 1,
-    //   57: 2,
-    //   58: 3,
-    // };
-    // console.log(mSender.data);
     const { scoreByDimension, groupByDimension } = calculateAllScores(sender.data);
     const sortedScore = Object.entries(scoreByDimension).sort(([, v1], [, v2]) => v2 - v1);
     setScores(sortedScore);
@@ -281,11 +220,17 @@ const CATEGORY_COLORS = {
   K: '#ffc658',
 };
 
+const HIGHER_LOWER_SCORE_TEXT = {
+  higher: '偏高',
+  lower: '偏低',
+};
+
 const CompletePage = (props) => {
   // eslint-disable-next-line react/prop-types
   const { scores, selectedQuestions, summary } = props;
   const highScore = selectedQuestions.filter((q) => q.high);
   const lowScore = selectedQuestions.filter((q) => !q.high);
+  console.log(highScore, lowScore);
 
   // Transform scores by category for radar charts
   const getRadarDataByCategory = (categoryKey) => {
@@ -337,6 +282,17 @@ const CompletePage = (props) => {
                 />
               </RadarChart>
             </ResponsiveContainer>
+            <div style={{ marginBottom: 12 }}>
+              <strong>{CATEGORY_NAMES.A}</strong>
+              <div className="score-list">
+                {getScoresByCategory('A').map((item) => (
+                  <div key={item.dimension} className="score-list-item">
+                    <span className="label">{item.dimension}</span>
+                    <span className="value">{item.score.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* ASK-S: Radar Chart */}
@@ -356,6 +312,17 @@ const CompletePage = (props) => {
                 />
               </RadarChart>
             </ResponsiveContainer>
+            <div style={{ marginBottom: 12 }}>
+              <strong>{CATEGORY_NAMES.S}</strong>
+              <div className="score-list">
+                {getScoresByCategory('S').map((item) => (
+                  <div key={item.dimension} className="score-list-item">
+                    <span className="label">{item.dimension}</span>
+                    <span className="value">{item.score.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* ASK-K: Radar Chart */}
@@ -375,6 +342,17 @@ const CompletePage = (props) => {
                 />
               </RadarChart>
             </ResponsiveContainer>
+            <div style={{ marginBottom: 12 }}>
+              <strong>{CATEGORY_NAMES.K}</strong>
+              <div className="score-list">
+                {getScoresByCategory('K').map((item) => (
+                  <div key={item.dimension} className="score-list-item">
+                    <span className="label">{item.dimension}</span>
+                    <span className="value">{item.score.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -385,19 +363,28 @@ const CompletePage = (props) => {
           {/* 测评结果基础解读 */}
           <div className="interpretation-section">
             <h5>测评结果基础解读</h5>
-            {['A', 'S', 'K'].map((cat) => (
-              <div key={cat} style={{ marginBottom: 12 }}>
-                <strong>{CATEGORY_NAMES[cat]}</strong>
-                <div className="score-list">
-                  {getScoresByCategory(cat).map((item) => (
-                    <div key={item.dimension} className="score-list-item">
-                      <span className="label">{item.dimension}</span>
-                      <span className="value">{item.score.toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {highScore.length > 0 && (
+              <ul>
+                {highScore.map((s) => (
+                  <li key={s.qid}>
+                    {`${DIMENSION_TEXT[s.dimension]}${HIGHER_LOWER_SCORE_TEXT.higher}: ${
+                      s.highScoreText
+                    }`}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {lowScore.length > 0 && (
+              <ul>
+                {lowScore.map((s) => (
+                  <li key={s.qid}>
+                    {`${DIMENSION_TEXT[s.dimension]}${HIGHER_LOWER_SCORE_TEXT.lower}: ${
+                      s.lowScoreText
+                    }`}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* 亮点&建议 */}
